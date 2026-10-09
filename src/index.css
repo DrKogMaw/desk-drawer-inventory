@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark light;
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-sidebar: #f1f5f9;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --bg-main: #020617;
+    --bg-card: #0f172a;
+    --bg-sidebar: #090d16;
+    --border-color: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.1);
+}
+.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.4);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* 3D Stacked Desk Cabinet styling */
+.desk-cabinet {
+  background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.08), 
+    0 4px 6px -4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  border: 1px solid #cbd5e1;
+}
+
+.dark .desk-cabinet {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.5), 
+    0 8px 10px -6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.desk-drawer-slot {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Realistic Drawer Handle */
+.drawer-handle {
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .drawer-handle {
+  background: linear-gradient(180deg, #94a3b8 0%, #475569 100%);
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+}
+
+.desk-drawer-active {
+  transform: translateX(6px);
+  box-shadow: -3px 0 0 0 #0c8de9, 0 8px 16px -4px rgba(12, 141, 233, 0.25);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Card hover animation */
+.item-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.item-card:hover {
+  transform: translateY(-2px);
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.96); }
+}
+
+.low-stock-pulse {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
