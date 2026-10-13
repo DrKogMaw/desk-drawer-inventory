@@ -7,8 +7,10 @@ import { ItemGrid } from './components/ItemGrid';
 import { ItemModal } from './components/ItemModal';
 import { DrawerModal } from './components/DrawerModal';
 import { Toast, ToastMessage } from './components/Toast';
+import { useI18n } from './i18n';
 
 export const App: React.FC = () => {
+  const { t } = useI18n();
   const [drawers, setDrawers] = useState<Drawer[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [selectedDrawerId, setSelectedDrawerId] = useState<number | null>(null);
@@ -83,7 +85,7 @@ export const App: React.FC = () => {
     if (targetItem) {
       const newQty = Math.max(0, targetItem.quantity + delta);
       showToast(
-        `Updated "${targetItem.name}" quantity to ${newQty}`,
+        t('updatedQuantity', { name: targetItem.name, quantity: newQty }),
         newQty <= targetItem.minThreshold ? 'warning' : 'success'
       );
     }
@@ -105,12 +107,12 @@ export const App: React.FC = () => {
         }
         return item;
       });
-      showToast(`Updated item "${itemData.name}"`, 'success');
+      showToast(t('updatedItem', { name: itemData.name || '' }), 'success');
     } else {
       // Create new item
       const newItem: InventoryItem = {
         id: `item-${Date.now()}`,
-        name: itemData.name || 'New Item',
+        name: itemData.name || t('newItem'),
         description: itemData.description || '',
         quantity: itemData.quantity ?? 1,
         drawerId: itemData.drawerId || selectedDrawerId || 1,
@@ -121,7 +123,7 @@ export const App: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
       updatedItems = [newItem, ...items];
-      showToast(`Added new item "${newItem.name}" to Drawer ${newItem.drawerId}`, 'success');
+      showToast(t('addedItem', { name: newItem.name, drawer: newItem.drawerId }), 'success');
     }
 
     await saveState(drawers, updatedItems);
@@ -132,10 +134,10 @@ export const App: React.FC = () => {
     const target = items.find((i) => i.id === id);
     if (!target) return;
 
-    if (window.confirm(`Are you sure you want to delete "${target.name}"?`)) {
+    if (window.confirm(t('confirmDeleteItem', { name: target.name }))) {
       const updatedItems = items.filter((i) => i.id !== id);
       await saveState(drawers, updatedItems);
-      showToast(`Deleted item "${target.name}"`, 'info');
+      showToast(t('deletedItem', { name: target.name }), 'info');
     }
   };
 
@@ -161,7 +163,7 @@ export const App: React.FC = () => {
       const updatedDrawers = [...drawers, newDrawer];
       await saveState(updatedDrawers, items);
       setSelectedDrawerId(drawerId);
-      showToast(`Created Drawer #${drawerId} - "${name}"`, 'success');
+      showToast(t('createdDrawer', { id: drawerId, name }), 'success');
     } else {
       const updatedDrawers = drawers.map((d) => {
         if (d.id === drawerId) {
@@ -171,7 +173,7 @@ export const App: React.FC = () => {
       });
 
       await saveState(updatedDrawers, items);
-      showToast(`Updated Drawer #${drawerId} - "${name}"`, 'success');
+      showToast(t('updatedDrawer', { id: drawerId, name }), 'success');
     }
   };
 
@@ -181,9 +183,9 @@ export const App: React.FC = () => {
     if (!target) return;
 
     const drawerItems = items.filter((i) => i.drawerId === drawerId);
-    let confirmMsg = `Are you sure you want to delete Drawer #${drawerId} ("${target.name}")?`;
+    let confirmMsg = t('confirmDeleteDrawer', { id: drawerId, name: target.name });
     if (drawerItems.length > 0) {
-      confirmMsg += `\n\nWarning: This drawer currently contains ${drawerItems.length} item(s)! These items will also be removed.`;
+      confirmMsg += `\n\n${t('drawerItemsWarning', { count: drawerItems.length })}`;
     }
 
     if (window.confirm(confirmMsg)) {
@@ -193,7 +195,7 @@ export const App: React.FC = () => {
         setSelectedDrawerId(null);
       }
       await saveState(updatedDrawers, updatedItems);
-      showToast(`Deleted Drawer #${drawerId}`, 'info');
+      showToast(t('deletedDrawer', { id: drawerId }), 'info');
     }
   };
 
@@ -214,7 +216,7 @@ export const App: React.FC = () => {
     const result = await StorageService.exportData(drawers, items);
     if (result.success) {
       showToast(
-        result.path ? `Backup saved to: ${result.path}` : 'Inventory backup exported successfully!',
+        result.path ? t('backupSaved', { path: result.path }) : t('backupExported'),
         'success'
       );
     }
@@ -229,11 +231,11 @@ export const App: React.FC = () => {
           const parsed = JSON.parse(res.data);
           if (Array.isArray(parsed.drawers) && Array.isArray(parsed.items)) {
             await saveState(parsed.drawers, parsed.items);
-            showToast('Inventory backup imported successfully!', 'success');
+            showToast(t('backupImported'), 'success');
             return;
           }
         } catch (e) {
-          showToast('Failed to parse imported JSON file', 'warning');
+          showToast(t('parseFailed'), 'warning');
         }
       }
     } else {
@@ -250,12 +252,12 @@ export const App: React.FC = () => {
               const parsed = JSON.parse(event.target?.result as string);
               if (Array.isArray(parsed.drawers) && Array.isArray(parsed.items)) {
                 await saveState(parsed.drawers, parsed.items);
-                showToast('Inventory imported successfully!', 'success');
+                showToast(t('inventoryImported'), 'success');
               } else {
-                showToast('Invalid JSON inventory format', 'warning');
+                showToast(t('invalidFormat'), 'warning');
               }
             } catch (err) {
-              showToast('Error reading JSON file', 'warning');
+              showToast(t('readError'), 'warning');
             }
           };
           reader.readAsText(file);
@@ -267,11 +269,11 @@ export const App: React.FC = () => {
 
   // Reset to sample data
   const handleResetData = async () => {
-    if (window.confirm('Reset all inventory back to initial default sample data?')) {
+    if (window.confirm(t('resetConfirm'))) {
       const reset = await StorageService.resetData();
       setDrawers(reset.drawers);
       setItems(reset.items);
-      showToast('Reset to default inventory data', 'info');
+      showToast(t('resetDone'), 'info');
     }
   };
 

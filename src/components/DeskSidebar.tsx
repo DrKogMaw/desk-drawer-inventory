@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer, InventoryItem } from '../types/inventory';
 import { LayoutGrid, Edit3, AlertTriangle, Layers, Inbox, ShieldAlert, Plus, Trash2 } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface DeskSidebarProps {
   drawers: Drawer[];
@@ -25,6 +26,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
   lowStockOnly,
   onToggleLowStock,
 }) => {
+  const { t } = useI18n();
   // Helper to compute stats per drawer
   const getDrawerStats = (drawerId: number) => {
     const drawerItems = items.filter((i) => i.drawerId === drawerId);
@@ -48,7 +50,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
             <h1 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight tracking-tight">
               DeskDrawer
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Inventory Manager</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('inventoryManager')}</p>
           </div>
         </div>
       </div>
@@ -68,7 +70,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
         >
           <div className="flex items-center space-x-2.5">
             <LayoutGrid className="w-4 h-4 opacity-80" />
-            <span>All Drawers ({drawers.length > 0 ? `1–${drawers.length}` : '0'})</span>
+            <span>{t('allDrawersRange', { range: drawers.length > 0 ? `1–${drawers.length}` : '0' })}</span>
           </div>
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
@@ -77,7 +79,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
             }`}
           >
-            {items.length} items
+            {t('itemsCount', { count: items.length })}
           </span>
         </button>
 
@@ -92,7 +94,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
         >
           <div className="flex items-center space-x-2.5">
             <ShieldAlert className="w-4 h-4" />
-            <span>Low / Out of Stock</span>
+            <span>{t('lowOutStock')}</span>
           </div>
           {totalLowStockAll > 0 && (
             <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-500/30">
@@ -107,15 +109,15 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
         <div className="flex items-center justify-between px-1 mb-2">
           <div className="flex items-center space-x-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             <Layers className="w-3.5 h-3.5" />
-            <span>Desk Cabinet</span>
+            <span>{t('deskCabinet')}</span>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              {drawers.length} {drawers.length === 1 ? 'Drawer' : 'Stacked Drawers'}
+              {drawers.length} {drawers.length === 1 ? t('drawer') : t('stackedDrawers')}
             </span>
             <button
               onClick={onOpenAddDrawerModal}
-              title="Add New Drawer"
+              title={t('addDrawer')}
               className="p-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200 dark:bg-brand-500/20 dark:hover:bg-brand-500/30 dark:text-brand-400 dark:border-brand-500/30 transition-colors flex items-center"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -182,7 +184,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
                           e.stopPropagation();
                           onOpenRenameModal(drawer);
                         }}
-                        title="Rename Drawer"
+                        title={t('renameDrawer')}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 dark:hover:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 opacity-60 group-hover:opacity-100 transition-all"
                       >
                         <Edit3 className="w-4 h-4" />
@@ -195,7 +197,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
                             e.stopPropagation();
                             onDeleteDrawer(drawer.id);
                           }}
-                          title="Delete Drawer"
+                          title={t('deleteDrawer')}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -210,7 +212,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        {stats.totalCount} items
+                        {t('itemsCount', { count: stats.totalCount })}
                       </span>
                     </div>
 
@@ -218,7 +220,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
                     {stats.lowStockCount > 0 && (
                       <span className="flex items-center space-x-1 text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-500/30 px-1.5 py-0.2 rounded-full">
                         <AlertTriangle className="w-2.5 h-2.5" />
-                        <span>{stats.lowStockCount} low</span>
+                        <span>{t('lowCount', { count: stats.lowStockCount })}</span>
                       </span>
                     )}
                   </div>
@@ -233,7 +235,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
             className="w-full mt-2 py-2.5 px-3 rounded-xl border border-dashed border-slate-300 hover:border-brand-500 bg-white/60 hover:bg-brand-50/60 text-slate-600 hover:text-brand-600 dark:border-slate-700 dark:hover:border-brand-500/80 dark:bg-slate-900/30 dark:hover:bg-slate-800/60 dark:text-slate-400 dark:hover:text-brand-300 text-xs font-semibold flex items-center justify-center space-x-2 transition-all group shadow-sm"
           >
             <Plus className="w-4 h-4 text-brand-500 dark:text-brand-400 group-hover:scale-110 transition-transform" />
-            <span>Add New Drawer</span>
+            <span>{t('addDrawer')}</span>
           </button>
         </div>
       </div>
@@ -241,7 +243,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/40 text-center">
         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-          DeskDrawer v1.0 • Offline Local Storage
+          DeskDrawer v1.0 • {t('offlineStorage')}
         </p>
       </div>
     </aside>

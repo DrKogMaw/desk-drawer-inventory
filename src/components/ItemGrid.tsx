@@ -3,6 +3,7 @@ import { InventoryItem, Drawer } from '../types/inventory';
 import { ItemCard } from './ItemCard';
 import { ItemTable } from './ItemTable';
 import { Inbox, Plus, SearchX, ShieldAlert } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface ItemGridProps {
   items: InventoryItem[];
@@ -27,6 +28,7 @@ export const ItemGrid: React.FC<ItemGridProps> = ({
   searchQuery,
   lowStockOnly,
 }) => {
+  const { t } = useI18n();
   // Empty State Rendering
   if (items.length === 0) {
     return (
@@ -43,18 +45,18 @@ export const ItemGrid: React.FC<ItemGridProps> = ({
 
         <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
           {searchQuery
-            ? `No items found matching "${searchQuery}"`
+            ? t('noItemsSearch', { query: searchQuery })
             : lowStockOnly
-            ? 'All items are well stocked!'
-            : 'No items in this drawer'}
+            ? t('allStocked')
+            : t('noItemsDrawer')}
         </h3>
 
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-6">
           {searchQuery
-            ? 'Try searching with different keywords or check spelling.'
+            ? t('trySearch')
             : lowStockOnly
-            ? 'Great job! None of your items are low or out of stock.'
-            : 'Get started by adding items to this desk drawer.'}
+            ? t('greatStock')
+            : t('getStarted')}
         </p>
 
         {!lowStockOnly && !searchQuery && (
@@ -63,7 +65,7 @@ export const ItemGrid: React.FC<ItemGridProps> = ({
             className="px-5 py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/30 flex items-center space-x-2 transition-all transform active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            <span>Add First Item</span>
+            <span>{t('addFirstItem')}</span>
           </button>
         )}
       </div>

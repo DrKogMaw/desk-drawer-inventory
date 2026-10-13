@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer } from '../types/inventory';
 import { X, Check, Layers, Plus, Edit3 } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface DrawerModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('#0c8de9');
@@ -44,12 +46,12 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
         setColor(drawer.color || '#0c8de9');
       } else {
         // Add mode defaults
-        setName(`Drawer ${suggestedDrawerId}`);
+        setName(t('drawerNumber', { id: suggestedDrawerId }));
         setDescription('');
         setColor(COLOR_OPTIONS[(suggestedDrawerId - 1) % COLOR_OPTIONS.length]);
       }
     }
-  }, [drawer, isOpen, mode, suggestedDrawerId]);
+  }, [drawer, isOpen, mode, suggestedDrawerId, t]);
 
   if (!isOpen) return null;
 
@@ -79,12 +81,12 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                {mode === 'add' ? `Add Drawer #${targetId}` : `Edit Drawer #${targetId}`}
+                {mode === 'add' ? t('addDrawerNumber', { id: targetId }) : t('editDrawerNumber', { id: targetId })}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {mode === 'add'
-                  ? 'Add a new stackable compartment to your desk cabinet'
-                  : `Update the label and theme for Drawer #${targetId}`}
+                  ? t('addDrawerHelp')
+                  : t('editDrawerHelp', { id: targetId })}
               </p>
             </div>
           </div>
@@ -101,27 +103,27 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-              Drawer Name
+              {t('drawerName')}
             </label>
             <input
               type="text"
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Drawer 6 - Electronics & Sensors"
+              placeholder={t('drawerNamePlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-              Drawer Description / Notes
+              {t('drawerNotes')}
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Cables, adapters, memory cards..."
+              placeholder={t('drawerNotesPlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm"
             />
           </div>
@@ -129,7 +131,7 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
           {/* Color Accent Picker */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">
-              Handle Color Accent
+              {t('handleColor')}
             </label>
             <div className="flex items-center flex-wrap gap-2">
               {COLOR_OPTIONS.map((c) => (
@@ -156,14 +158,14 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
             />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                {name || `Drawer ${targetId}`}
+                {name || t('drawerNumber', { id: targetId })}
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                {description || 'No description provided'}
+                {description || t('noDescription')}
               </p>
             </div>
             <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              Preview
+              {t('preview')}
             </span>
           </div>
 
@@ -174,7 +176,7 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
@@ -185,7 +187,7 @@ export const DrawerModal: React.FC<DrawerModalProps> = ({
               }`}
             >
               <Check className="w-4 h-4" />
-              <span>{mode === 'add' ? 'Create Drawer' : 'Save Changes'}</span>
+              <span>{mode === 'add' ? t('createDrawer') : t('saveChanges')}</span>
             </button>
           </div>
         </form>

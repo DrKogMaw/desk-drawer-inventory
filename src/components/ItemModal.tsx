@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { InventoryItem, Drawer, CATEGORY_EMOJIS } from '../types/inventory';
 import { X, Check, Package, AlertCircle } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface ItemModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   drawers,
   defaultDrawerId,
 }) => {
+  const { t, categoryLabel } = useI18n();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
@@ -62,12 +64,12 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     e.preventDefault();
 
     if (!name.trim()) {
-      setError('Item name is required.');
+      setError(t('nameRequired'));
       return;
     }
 
     if (quantity < 0) {
-      setError('Quantity cannot be negative.');
+      setError(t('quantityNegative'));
       return;
     }
 
@@ -96,12 +98,12 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                {editingItem ? 'Edit Inventory Item' : 'Add New Item'}
+                {editingItem ? t('editItemTitle') : t('addItemTitle')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {editingItem
-                  ? 'Update details and quantity for this item'
-                  : 'Add a new item to one of your desk drawers'}
+                  ? t('editItemHelp')
+                  : t('addItemHelp')}
               </p>
             </div>
           </div>
@@ -126,14 +128,14 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           {/* Name Field */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-              Item Name <span className="text-red-500">*</span>
+              {t('itemName')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. USB-C Cable, Gel Pens, Stapler..."
+              placeholder={t('itemNamePlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm"
             />
           </div>
@@ -143,7 +145,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             {/* Drawer Select */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                Assigned Desk Drawer <span className="text-red-500">*</span>
+                {t('assignedDrawer')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={drawerId}
@@ -152,7 +154,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               >
                 {drawers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    Drawer {d.id}: {d.name}
+                    {t('drawerNumber', { id: d.id })}: {d.name}
                   </option>
                 ))}
               </select>
@@ -161,7 +163,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             {/* Category Select */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                Category & Icon
+                {t('categoryIcon')}
               </label>
               <div className="flex items-center space-x-2">
                 <input
@@ -170,7 +172,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                   onChange={(e) => setEmoji(e.target.value)}
                   className="w-12 text-center bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl py-2 text-lg focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm"
                   maxLength={4}
-                  title="Custom Emoji Icon"
+                  title={t('customEmoji')}
                 />
                 <select
                   value={category}
@@ -179,7 +181,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                 >
                   {Object.keys(CATEGORY_EMOJIS).map((cat) => (
                     <option key={cat} value={cat}>
-                      {CATEGORY_EMOJIS[cat]} {cat}
+                      {CATEGORY_EMOJIS[cat]} {categoryLabel(cat)}
                     </option>
                   ))}
                 </select>
@@ -191,7 +193,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                Quantity (Amount) <span className="text-red-500">*</span>
+                {t('quantity')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -204,7 +206,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                Low Stock Threshold
+                {t('lowThreshold')}
               </label>
               <input
                 type="number"
@@ -219,13 +221,13 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-              Description (Optional)
+              {t('descriptionOptional')}
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add optional notes, specifications, brand info, or location within drawer..."
+              placeholder={t('descriptionPlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none shadow-sm"
             />
           </div>
@@ -237,14 +239,14 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/30 flex items-center space-x-1.5 transition-all"
             >
               <Check className="w-4 h-4" />
-              <span>{editingItem ? 'Save Changes' : 'Create Item'}</span>
+              <span>{editingItem ? t('saveChanges') : t('createItem')}</span>
             </button>
           </div>
         </form>
