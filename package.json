@@ -10,6 +10,7 @@
     "build:web": "tsc && vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "tsc -p tsconfig.electron.json && tsc && vite build",
+    "test": "node --experimental-strip-types --test tests/*.mjs",
     "preview": "vite preview",
     "electron:dev": "vite",
     "electron:build": "npm run build && electron-builder --win",

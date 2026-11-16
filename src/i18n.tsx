@@ -54,6 +54,12 @@ const translations = {
     backupSaved: 'Backup saved to: {{path}}', backupExported: 'Inventory backup exported successfully!', backupImported: 'Inventory backup imported successfully!',
     parseFailed: 'Failed to parse imported JSON file', inventoryImported: 'Inventory imported successfully!', invalidFormat: 'Invalid JSON inventory format',
     readError: 'Error reading JSON file', resetConfirm: 'Reset all inventory back to initial default sample data?', resetDone: 'Reset to default inventory data',
+    manualPhotos: 'Manual photos', manualPhotosHelp: 'Add up to 10 JPG, PNG, GIF, or WebP images (2 MB each). Photos are included in backups.',
+    addManualPhotos: 'Add manual photos', viewManualPhoto: 'View manual photo', deleteManualPhoto: 'Delete manual photo', closePhoto: 'Close photo',
+    photoTypeError: 'Choose a valid JPG, PNG, GIF, or WebP image.', photoSizeError: 'Each photo must be between 1 byte and 2 MB.',
+    photoCountError: 'You can attach up to 10 photos to an item.', photoReadError: 'Could not read the selected photo.',
+    photoSaveError: 'Could not save this item. Check available storage and try again.',
+    photoCount: '{{count}} manual photos',
   },
   es: {
     language: 'Idioma', english: 'English', spanish: 'Español', inventoryManager: 'Gestor de inventario',
@@ -91,6 +97,12 @@ const translations = {
     backupSaved: 'Copia guardada en: {{path}}', backupExported: '¡Copia del inventario exportada correctamente!', backupImported: '¡Copia del inventario importada correctamente!',
     parseFailed: 'No se pudo procesar el archivo JSON importado', inventoryImported: '¡Inventario importado correctamente!', invalidFormat: 'Formato JSON de inventario no válido',
     readError: 'Error al leer el archivo JSON', resetConfirm: '¿Restablecer todo el inventario a los datos de ejemplo iniciales?', resetDone: 'Inventario restablecido a los datos predeterminados',
+    manualPhotos: 'Fotos del manual', manualPhotosHelp: 'Añade hasta 10 imágenes JPG, PNG, GIF o WebP (2 MB cada una). Las fotos se incluyen en las copias de seguridad.',
+    addManualPhotos: 'Añadir fotos del manual', viewManualPhoto: 'Ver foto del manual', deleteManualPhoto: 'Eliminar foto del manual', closePhoto: 'Cerrar foto',
+    photoTypeError: 'Elige una imagen JPG, PNG, GIF o WebP válida.', photoSizeError: 'Cada foto debe tener entre 1 byte y 2 MB.',
+    photoCountError: 'Puedes adjuntar hasta 10 fotos a un artículo.', photoReadError: 'No se pudo leer la foto seleccionada.',
+    photoSaveError: 'No se pudo guardar el artículo. Comprueba el espacio disponible e inténtalo de nuevo.',
+    photoCount: '{{count}} fotos del manual',
   },
 } as const;
 
