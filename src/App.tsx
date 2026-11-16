@@ -60,9 +60,12 @@ export const App: React.FC = () => {
 
   // Save changes to storage whenever drawers or items change
   const saveState = async (newDrawers: Drawer[], newItems: InventoryItem[]) => {
-    setDrawers(newDrawers);
-    setItems(newItems);
-    await StorageService.saveData(newDrawers, newItems);
+    const saved = await StorageService.saveData(newDrawers, newItems);
+    if (saved) {
+      setDrawers(newDrawers);
+      setItems(newItems);
+    }
+    return saved;
   };
 
   // Quick Quantity Update (+ / -)
@@ -92,7 +95,7 @@ export const App: React.FC = () => {
   };
 
   // Add / Edit Item Save Handler
-  const handleSaveItem = async (itemData: Partial<InventoryItem>) => {
+  const handleSaveItem = async (itemData: Partial<InventoryItem>): Promise<boolean> => {
     let updatedItems: InventoryItem[];
 
     if (itemData.id) {
@@ -107,7 +110,6 @@ export const App: React.FC = () => {
         }
         return item;
       });
-      showToast(t('updatedItem', { name: itemData.name || '' }), 'success');
     } else {
       // Create new item
       const newItem: InventoryItem = {
@@ -121,12 +123,16 @@ export const App: React.FC = () => {
         minThreshold: itemData.minThreshold ?? 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        manualPhotos: itemData.manualPhotos || [],
       };
       updatedItems = [newItem, ...items];
-      showToast(t('addedItem', { name: newItem.name, drawer: newItem.drawerId }), 'success');
     }
 
-    await saveState(drawers, updatedItems);
+    const saved = await saveState(drawers, updatedItems);
+    if (saved) showToast(itemData.id
+      ? t('updatedItem', { name: itemData.name || '' })
+      : t('addedItem', { name: itemData.name || '', drawer: itemData.drawerId || selectedDrawerId || 1 }), 'success');
+    return saved;
   };
 
   // Delete Item Handler

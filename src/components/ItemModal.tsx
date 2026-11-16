@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { InventoryItem, Drawer, CATEGORY_EMOJIS } from '../types/inventory';
+import { InventoryItem, Drawer, ManualPhoto, CATEGORY_EMOJIS } from '../types/inventory';
 import { X, Check, Package, AlertCircle } from 'lucide-react';
 import { useI18n } from '../i18n';
+import { MAX_PHOTOS_PER_ITEM, readManualPhoto, validateManualPhoto } from '../services/manualPhotos';
 
 interface ItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Partial<InventoryItem>) => void;
+  onSave: (item: Partial<InventoryItem>) => Promise<boolean>;
   editingItem: InventoryItem | null;
   drawers: Drawer[];
   defaultDrawerId: number;
@@ -29,6 +30,9 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const [emoji, setEmoji] = useState('✏️');
   const [minThreshold, setMinThreshold] = useState<number>(1);
   const [error, setError] = useState('');
+  const [manualPhotos, setManualPhotos] = useState<ManualPhoto[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState<ManualPhoto | null>(null);
 
   useEffect(() => {
     if (editingItem) {
@@ -39,6 +43,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setCategory(editingItem.category || 'Stationery & Paper');
       setEmoji(editingItem.emoji || '📦');
       setMinThreshold(editingItem.minThreshold ?? 1);
+      setManualPhotos(editingItem.manualPhotos || []);
     } else {
       setName('');
       setDescription('');
@@ -47,8 +52,10 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setCategory('Stationery & Paper');
       setEmoji('✏️');
       setMinThreshold(1);
+      setManualPhotos([]);
     }
     setError('');
+    setViewingPhoto(null);
   }, [editingItem, isOpen, defaultDrawerId, drawers]);
 
   if (!isOpen) return null;
@@ -60,7 +67,33 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePhotoSelection = async (files: FileList | null) => {
+    if (!files?.length) return;
+    if (manualPhotos.length + files.length > MAX_PHOTOS_PER_ITEM) {
+      setError(t('photoCountError'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const additions: ManualPhoto[] = [];
+      for (const file of Array.from(files)) {
+        const issue = await validateManualPhoto(file);
+        if (issue) {
+          setError(t(issue as 'photoTypeError' | 'photoSizeError'));
+          return;
+        }
+        additions.push(await readManualPhoto(file));
+      }
+      setManualPhotos(previous => [...previous, ...additions]);
+      setError('');
+    } catch {
+      setError(t('photoReadError'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim()) {
@@ -73,7 +106,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       return;
     }
 
-    onSave({
+    setBusy(true);
+    const saved = await onSave({
       id: editingItem ? editingItem.id : undefined,
       name: name.trim(),
       description: description.trim(),
@@ -82,14 +116,16 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       category,
       emoji,
       minThreshold: Number(minThreshold),
+      manualPhotos,
     });
-
-    onClose();
+    setBusy(false);
+    if (saved) onClose();
+    else setError(t('photoSaveError'));
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40">
           <div className="flex items-center space-x-3">
@@ -117,7 +153,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 dark:bg-red-500/15 dark:border-red-500/30 dark:text-red-300 text-xs font-semibold flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -233,6 +269,24 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           </div>
 
           {/* Footer buttons */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">{t('manualPhotos')}</label>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{t('manualPhotosHelp')}</p>
+            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple disabled={busy || manualPhotos.length >= MAX_PHOTOS_PER_ITEM}
+              aria-label={t('addManualPhotos')} onChange={e => { void handlePhotoSelection(e.target.files); e.target.value = ''; }}
+              className="block w-full text-xs text-slate-600 dark:text-slate-300" />
+            {manualPhotos.length > 0 && <div className="grid grid-cols-3 gap-2 mt-3">
+              {manualPhotos.map(photo => <div key={photo.id} className="relative rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <button type="button" onClick={() => setViewingPhoto(photo)} title={t('viewManualPhoto')} className="w-full">
+                  <img src={photo.dataUrl} alt={photo.name} className="w-full h-20 object-cover" />
+                </button>
+                <button type="button" onClick={() => setManualPhotos(previous => previous.filter(p => p.id !== photo.id))}
+                  aria-label={`${t('deleteManualPhoto')}: ${photo.name}`} title={t('deleteManualPhoto')}
+                  className="absolute top-1 right-1 p-1 rounded bg-slate-950/75 text-white"><X className="w-3 h-3" /></button>
+                <p className="px-1 truncate text-[10px]" title={photo.name}>{photo.name}</p>
+              </div>)}
+            </div>}
+          </div>
           <div className="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
@@ -243,6 +297,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             </button>
             <button
               type="submit"
+              disabled={busy}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/30 flex items-center space-x-1.5 transition-all"
             >
               <Check className="w-4 h-4" />
@@ -251,6 +306,10 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           </div>
         </form>
       </div>
+      {viewingPhoto && <div className="fixed inset-0 z-[60] bg-slate-950/90 flex items-center justify-center p-6" role="dialog" aria-label={t('viewManualPhoto')}>
+        <button type="button" onClick={() => setViewingPhoto(null)} aria-label={t('closePhoto')} className="absolute top-4 right-4 text-white p-2"><X /></button>
+        <img src={viewingPhoto.dataUrl} alt={viewingPhoto.name} className="max-w-full max-h-full object-contain" />
+      </div>}
     </div>
   );
 };

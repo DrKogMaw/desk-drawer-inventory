@@ -17,6 +17,13 @@ export interface InventoryItem {
   minThreshold: number; // Default 1
   createdAt: string;
   updatedAt: string;
+  manualPhotos?: ManualPhoto[];
+}
+
+export interface ManualPhoto {
+  id: string;
+  name: string;
+  dataUrl: string;
 }
 
 export const CATEGORY_EMOJIS: Record<string, string> = {

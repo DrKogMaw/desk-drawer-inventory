@@ -75,14 +75,13 @@ export class StorageService {
    */
   static async saveData(drawers: Drawer[], items: InventoryItem[]): Promise<boolean> {
     try {
-      // Always update localStorage as immediate fallback
+      // The desktop file is authoritative. Photos can exceed browser storage quotas.
+      if (window.deskDrawerAPI?.saveData) {
+        return await window.deskDrawerAPI.saveData({ drawers, items });
+      }
+
       localStorage.setItem(DRAWERS_STORAGE_KEY, JSON.stringify(drawers));
       localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items));
-
-      // Save to Electron file storage if available
-      if (window.deskDrawerAPI?.saveData) {
-        await window.deskDrawerAPI.saveData({ drawers, items });
-      }
 
       return true;
     } catch (error) {

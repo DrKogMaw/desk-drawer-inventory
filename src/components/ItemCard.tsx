@@ -1,6 +1,6 @@
 import React from 'react';
 import { InventoryItem, Drawer } from '../types/inventory';
-import { Plus, Minus, Edit2, Trash2, AlertTriangle, Inbox } from 'lucide-react';
+import { Plus, Minus, Edit2, Trash2, AlertTriangle, Inbox, Images } from 'lucide-react';
 import { useI18n } from '../i18n';
 
 interface ItemCardProps {
@@ -70,6 +70,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[36px]">
           {item.description || t('noDescriptionPeriod')}
         </p>
+        {!!item.manualPhotos?.length && <button onClick={() => onEditItem(item)} title={t('viewManualPhoto')} className="mt-2 inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400">
+          <Images className="w-3.5 h-3.5" />{t('photoCount', { count: item.manualPhotos.length })}
+        </button>}
       </div>
 
       {/* Card Footer: Quick Quantity Controls (+ / -) & Action Menu */}

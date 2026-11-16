@@ -60,6 +60,9 @@ export const ItemTable: React.FC<ItemTableProps> = ({
                           {item.description}
                         </p>
                       )}
+                      {!!item.manualPhotos?.length && <button onClick={() => onEditItem(item)} className="text-[11px] text-brand-600 dark:text-brand-400" title={t('viewManualPhoto')}>
+                        {t('photoCount', { count: item.manualPhotos.length })}
+                      </button>}
                     </div>
                   </div>
                 </td>
