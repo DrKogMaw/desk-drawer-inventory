@@ -1,6 +1,6 @@
 import React from 'react';
 import { InventoryItem, Drawer } from '../types/inventory';
-import { Plus, Minus, Edit2, Trash2, AlertTriangle, Inbox } from 'lucide-react';
+import { Plus, Minus, Edit2, Trash2, AlertTriangle, Inbox, Paperclip } from 'lucide-react';
 import { useI18n } from '../i18n';
 
 interface ItemTableProps {
@@ -60,6 +60,7 @@ export const ItemTable: React.FC<ItemTableProps> = ({
                           {item.description}
                         </p>
                       )}
+                      {!!item.attachments?.length && <button type="button" onClick={() => onEditItem(item)} title={t('attachmentsTitle')} className="inline-flex items-center gap-1 text-[11px] text-brand-700 dark:text-brand-300 hover:underline"><Paperclip className="w-3 h-3" />{item.attachments.length}</button>}
                     </div>
                   </div>
                 </td>

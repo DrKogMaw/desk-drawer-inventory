@@ -15,8 +15,17 @@ export interface InventoryItem {
   category: string;
   emoji: string;
   minThreshold: number; // Default 1
+  attachments?: InventoryAttachment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface InventoryAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  kind: 'image' | 'document';
 }
 
 export const CATEGORY_EMOJIS: Record<string, string> = {

@@ -1,4 +1,5 @@
 import { Drawer, InventoryItem, DEFAULT_DRAWERS, INITIAL_ITEMS } from '../types/inventory';
+import { addAttachment, blobToDataUrl, dataUrlToFile, deleteAttachment, getAttachment } from './attachments';
 
 // Extend window interface for Electron IPC declaration
 declare global {
@@ -75,13 +76,16 @@ export class StorageService {
    */
   static async saveData(drawers: Drawer[], items: InventoryItem[]): Promise<boolean> {
     try {
-      // Always update localStorage as immediate fallback
-      localStorage.setItem(DRAWERS_STORAGE_KEY, JSON.stringify(drawers));
-      localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items));
-
-      // Save to Electron file storage if available
       if (window.deskDrawerAPI?.saveData) {
-        await window.deskDrawerAPI.saveData({ drawers, items });
+        if (!await window.deskDrawerAPI.saveData({ drawers, items })) return false;
+        // Electron's file is authoritative; a full browser storage area must not block saving.
+        try {
+          localStorage.setItem(DRAWERS_STORAGE_KEY, JSON.stringify(drawers));
+          localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items));
+        } catch { /* The Electron copy was saved. */ }
+      } else {
+        localStorage.setItem(DRAWERS_STORAGE_KEY, JSON.stringify(drawers));
+        localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items));
       }
 
       return true;
@@ -95,32 +99,68 @@ export class StorageService {
    * Export inventory data to JSON file
    */
   static async exportData(drawers: Drawer[], items: InventoryItem[]): Promise<{ success: boolean; path?: string }> {
-    const payload = JSON.stringify({ drawers, items, exportDate: new Date().toISOString(), app: 'DeskDrawer Inventory Manager' }, null, 2);
+    try {
+      const attachmentFiles: Record<string, string> = {};
+      for (const item of items) for (const attachment of item.attachments || []) {
+        const file = await getAttachment(attachment.id);
+        if (!file) throw new Error(`Missing attachment: ${attachment.name}`);
+        attachmentFiles[attachment.id] = await blobToDataUrl(file);
+      }
+      const payload = JSON.stringify({ drawers, items, attachmentFiles, exportDate: new Date().toISOString(), app: 'DeskDrawer Inventory Manager' }, null, 2);
 
-    if (window.deskDrawerAPI?.exportFile) {
-      const res = await window.deskDrawerAPI.exportFile(payload);
-      return res;
+      if (window.deskDrawerAPI?.exportFile) return await window.deskDrawerAPI.exportFile(payload);
+
+      const filename = `desk_drawer_inventory_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return { success: true, path: 'Downloads folder' };
+    } catch (error) {
+      console.error('Could not export complete backup:', error);
+      return { success: false };
     }
+  }
 
-    // Web browser fallback download trigger
-    const filename = `desk_drawer_inventory_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    const blob = new Blob([payload], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    return { success: true, path: 'Downloads folder' };
+  static async importBackup(raw: string, previousItems: InventoryItem[]): Promise<{ drawers: Drawer[]; items: InventoryItem[] }> {
+    const backup = JSON.parse(raw);
+    if (!Array.isArray(backup.drawers) || !Array.isArray(backup.items)) throw new Error('Invalid inventory backup.');
+    const imported: string[] = [];
+    try {
+      const items: InventoryItem[] = [];
+      for (const item of backup.items as InventoryItem[]) {
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || typeof item.name !== 'string') {
+          throw new Error('Invalid item in backup.');
+        }
+        const attachments = [];
+        for (const attachment of Array.isArray(item.attachments) ? item.attachments : []) {
+          const dataUrl = backup.attachmentFiles?.[attachment.id];
+          // Old inventory-only backups have no file data. Do not retain broken links.
+          if (typeof dataUrl !== 'string') continue;
+          const stored = await addAttachment(await dataUrlToFile(dataUrl, attachment.name));
+          imported.push(stored.id);
+          attachments.push(stored);
+        }
+        items.push({ ...item, attachments });
+      }
+      if (!await this.saveData(backup.drawers, items)) throw new Error('Could not save imported inventory.');
+      await Promise.allSettled(previousItems.flatMap(item => (item.attachments || []).map(file => deleteAttachment(file.id))));
+      return { drawers: backup.drawers, items };
+    } catch (error) {
+      await Promise.allSettled(imported.map(id => deleteAttachment(id)));
+      throw error;
+    }
   }
 
   /**
    * Reset data back to default sample data
    */
   static async resetData(): Promise<{ drawers: Drawer[]; items: InventoryItem[] }> {
-    await this.saveData(DEFAULT_DRAWERS, INITIAL_ITEMS);
+    if (!await this.saveData(DEFAULT_DRAWERS, INITIAL_ITEMS)) throw new Error('Could not reset inventory.');
     return { drawers: DEFAULT_DRAWERS, items: INITIAL_ITEMS };
   }
 }

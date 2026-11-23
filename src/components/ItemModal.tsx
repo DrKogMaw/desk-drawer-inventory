@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { InventoryItem, Drawer, CATEGORY_EMOJIS } from '../types/inventory';
-import { X, Check, Package, AlertCircle } from 'lucide-react';
+import { InventoryItem, InventoryAttachment, Drawer, CATEGORY_EMOJIS } from '../types/inventory';
+import { X, Check, Package, AlertCircle, Paperclip, FileText, Image as ImageIcon, Trash2, ExternalLink } from 'lucide-react';
 import { useI18n } from '../i18n';
+import { ATTACHMENT_ACCEPT, addAttachment, deleteAttachment, getAttachment, validateAttachment } from '../services/attachments';
+
+type PendingFile = { id: string; file: File };
+const fileSize = (bytes: number) => bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
 interface ItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Partial<InventoryItem>) => void;
+  onSave: (item: Partial<InventoryItem>) => Promise<boolean>;
   editingItem: InventoryItem | null;
   drawers: Drawer[];
   defaultDrawerId: number;
@@ -29,6 +33,11 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const [emoji, setEmoji] = useState('✏️');
   const [minThreshold, setMinThreshold] = useState<number>(1);
   const [error, setError] = useState('');
+  const [attachments, setAttachments] = useState<InventoryAttachment[]>([]);
+  const [pending, setPending] = useState<PendingFile[]>([]);
+  const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (editingItem) {
@@ -39,6 +48,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setCategory(editingItem.category || 'Stationery & Paper');
       setEmoji(editingItem.emoji || '📦');
       setMinThreshold(editingItem.minThreshold ?? 1);
+      setAttachments(editingItem.attachments || []);
     } else {
       setName('');
       setDescription('');
@@ -47,9 +57,33 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setCategory('Stationery & Paper');
       setEmoji('✏️');
       setMinThreshold(1);
+      setAttachments([]);
     }
+    setPending([]);
+    setPreview(null);
+    setSaving(false);
     setError('');
   }, [editingItem, isOpen, defaultDrawerId, drawers]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    const urls: Record<string, string> = {};
+    Promise.all(attachments.map(async attachment => {
+      try {
+        const blob = await getAttachment(attachment.id);
+        if (blob && active) urls[attachment.id] = URL.createObjectURL(new Blob([blob], { type: attachment.type }));
+      } catch (cause) { console.error('Could not load attachment', cause); }
+    })).then(() => {
+      if (active) setFileUrls(urls);
+    });
+    for (const entry of pending) urls[entry.id] = URL.createObjectURL(entry.file);
+    setFileUrls({ ...urls });
+    return () => {
+      active = false;
+      Object.values(urls).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [attachments, pending, isOpen]);
 
   if (!isOpen) return null;
 
@@ -60,8 +94,9 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
 
     if (!name.trim()) {
       setError(t('nameRequired'));
@@ -73,23 +108,49 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       return;
     }
 
-    onSave({
-      id: editingItem ? editingItem.id : undefined,
-      name: name.trim(),
-      description: description.trim(),
-      quantity: Number(quantity),
-      drawerId: Number(drawerId),
-      category,
-      emoji,
-      minThreshold: Number(minThreshold),
-    });
-
-    onClose();
+    setSaving(true);
+    const added: InventoryAttachment[] = [];
+    try {
+      for (const entry of pending) added.push(await addAttachment(entry.file));
+      const saved = await onSave({
+        id: editingItem ? editingItem.id : undefined,
+        name: name.trim(), description: description.trim(), quantity: Number(quantity),
+        drawerId: Number(drawerId), category, emoji, minThreshold: Number(minThreshold),
+        attachments: [...attachments, ...added],
+      });
+      if (!saved) throw new Error(t('attachmentSaveFailed'));
+      const kept = new Set(attachments.map(file => file.id));
+      await Promise.allSettled((editingItem?.attachments || []).filter(file => !kept.has(file.id)).map(file => deleteAttachment(file.id)));
+      onClose();
+    } catch (cause) {
+      await Promise.allSettled(added.map(file => deleteAttachment(file.id)));
+      setError(cause instanceof Error ? cause.message : t('attachmentSaveFailed'));
+    } finally { setSaving(false); }
   };
+
+  const chooseFiles = (files: FileList | null) => {
+    if (!files) return;
+    const accepted: PendingFile[] = [];
+    for (const file of Array.from(files)) {
+      const issue = validateAttachment(file);
+      if (issue) { setError(t('attachmentInvalid', { name: file.name })); continue; }
+      accepted.push({ id: crypto.randomUUID(), file });
+    }
+    if (accepted.length) {
+      setPending(current => [...current, ...accepted]);
+      if (accepted.length === files.length) setError('');
+    }
+  };
+
+  const displayed = [
+    ...attachments.map(file => ({ id: file.id, name: file.name, size: file.size, kind: file.kind, pending: false })),
+    ...pending.map(entry => ({ id: entry.id, name: entry.file.name, size: entry.file.size,
+      kind: (entry.file.type.startsWith('image/') ? 'image' : 'document') as InventoryAttachment['kind'], pending: true })),
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl max-h-[90vh] shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100 transition-colors flex flex-col">
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40">
           <div className="flex items-center space-x-3">
@@ -110,6 +171,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
           <button
             onClick={onClose}
+            disabled={saving}
+            aria-label={t('cancel')}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -117,7 +180,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto min-h-0">
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 dark:bg-red-500/15 dark:border-red-500/30 dark:text-red-300 text-xs font-semibold flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -232,24 +295,71 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             />
           </div>
 
+          {/* Item attachments */}
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <Paperclip className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                  {t('attachmentsTitle')} {displayed.length > 0 && <span className="text-slate-500 dark:text-slate-400">({displayed.length})</span>}
+                </h4>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('attachmentsHelp')}</p>
+              </div>
+              <label className="shrink-0 cursor-pointer inline-flex items-center gap-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-bold focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 dark:focus-within:ring-offset-slate-900">
+                <Paperclip className="w-3.5 h-3.5" />{t('addFiles')}
+                <input type="file" multiple accept={ATTACHMENT_ACCEPT} className="sr-only" disabled={saving}
+                  onChange={event => { chooseFiles(event.target.files); event.target.value = ''; }} />
+              </label>
+            </div>
+            {displayed.length === 0 ? (
+              <p className="mt-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 px-4 py-5 text-center text-xs text-slate-500 dark:text-slate-400">{t('noAttachments')}</p>
+            ) : (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {displayed.map(file => {
+                  const url = fileUrls[file.id];
+                  return <div key={file.id} className="min-w-0 flex items-center gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 px-2.5 py-2 border border-slate-200 dark:border-slate-700">
+                    <div className="w-10 h-10 shrink-0 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden text-slate-600 dark:text-slate-300">
+                      {file.kind === 'image' && url ? <img src={url} alt="" className="w-full h-full object-cover" /> : file.kind === 'image' ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold" title={file.name}>{file.name}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{fileSize(file.size)}</p>
+                    </div>
+                    {url && (file.kind === 'image' ?
+                      <button type="button" onClick={() => setPreview(url)} title={t('viewAttachment')} aria-label={`${t('viewAttachment')}: ${file.name}`} className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-slate-700"><ExternalLink className="w-4 h-4" /></button> :
+                      <a href={url} download={file.name} title={t('downloadAttachment')} aria-label={`${t('downloadAttachment')}: ${file.name}`} className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-slate-700"><ExternalLink className="w-4 h-4" /></a>)}
+                    <button type="button" disabled={saving} onClick={() => file.pending ? setPending(current => current.filter(entry => entry.id !== file.id)) : setAttachments(current => current.filter(entry => entry.id !== file.id))}
+                      title={t('removeAttachment')} aria-label={`${t('removeAttachment')}: ${file.name}`} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50"><Trash2 className="w-4 h-4" /></button>
+                  </div>;
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Footer buttons */}
           <div className="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
+              disabled={saving}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/30 flex items-center space-x-1.5 transition-all"
             >
               <Check className="w-4 h-4" />
-              <span>{editingItem ? t('saveChanges') : t('createItem')}</span>
+              <span>{saving ? t('savingItem') : editingItem ? t('saveChanges') : t('createItem')}</span>
             </button>
           </div>
         </form>
+        {preview && <div role="dialog" aria-modal="true" aria-label={t('viewAttachment')} className="fixed inset-0 z-[60] bg-slate-950/90 flex items-center justify-center p-6" onClick={() => setPreview(null)}>
+          <button type="button" onClick={() => setPreview(null)} aria-label={t('closePreview')} className="absolute top-5 right-5 p-2 rounded-xl bg-slate-800 text-white"><X className="w-5 h-5" /></button>
+          <img src={preview} alt={t('viewAttachment')} className="max-w-full max-h-full object-contain" onClick={event => event.stopPropagation()} />
+        </div>}
       </div>
     </div>
   );

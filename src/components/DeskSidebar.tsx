@@ -243,7 +243,7 @@ export const DeskSidebar: React.FC<DeskSidebarProps> = ({
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/40 text-center">
         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-          DeskDrawer v1.0 • {t('offlineStorage')}
+          DeskDrawer v1.1 • {t('offlineStorage')}
         </p>
       </div>
     </aside>

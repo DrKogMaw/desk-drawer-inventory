@@ -1,6 +1,6 @@
 import React from 'react';
 import { InventoryItem, Drawer } from '../types/inventory';
-import { Plus, Minus, Edit2, Trash2, AlertTriangle, Inbox } from 'lucide-react';
+import { Plus, Minus, Edit2, Trash2, AlertTriangle, Inbox, Paperclip } from 'lucide-react';
 import { useI18n } from '../i18n';
 
 interface ItemCardProps {
@@ -70,6 +70,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[36px]">
           {item.description || t('noDescriptionPeriod')}
         </p>
+        {!!item.attachments?.length && <button type="button" onClick={() => onEditItem(item)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"><Paperclip className="w-3.5 h-3.5" />{item.attachments.length} {t('attachmentsTitle')}</button>}
       </div>
 
       {/* Card Footer: Quick Quantity Controls (+ / -) & Action Menu */}

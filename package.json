@@ -1,7 +1,7 @@
 {
   "name": "desk-drawer-inventory",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Modern Windows Desktop Application for Desk Drawer Inventory Management",
   "main": "dist-electron/main.js",
   "author": "Antigravity Developer",
@@ -10,6 +10,7 @@
     "build:web": "tsc && vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "tsc -p tsconfig.electron.json && tsc && vite build",
+    "test": "node --test test/*.test.mjs",
     "preview": "vite preview",
     "electron:dev": "vite",
     "electron:build": "npm run build && electron-builder --win",

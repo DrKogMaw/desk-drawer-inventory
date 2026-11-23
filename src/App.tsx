@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Drawer, InventoryItem } from './types/inventory';
 import { StorageService } from './services/storage';
+import { deleteAttachment } from './services/attachments';
 import { DeskSidebar } from './components/DeskSidebar';
 import { InventoryHeader } from './components/InventoryHeader';
 import { ItemGrid } from './components/ItemGrid';
@@ -60,9 +61,10 @@ export const App: React.FC = () => {
 
   // Save changes to storage whenever drawers or items change
   const saveState = async (newDrawers: Drawer[], newItems: InventoryItem[]) => {
+    if (!await StorageService.saveData(newDrawers, newItems)) return false;
     setDrawers(newDrawers);
     setItems(newItems);
-    await StorageService.saveData(newDrawers, newItems);
+    return true;
   };
 
   // Quick Quantity Update (+ / -)
@@ -107,11 +109,10 @@ export const App: React.FC = () => {
         }
         return item;
       });
-      showToast(t('updatedItem', { name: itemData.name || '' }), 'success');
     } else {
       // Create new item
       const newItem: InventoryItem = {
-        id: `item-${Date.now()}`,
+        id: `item-${crypto.randomUUID()}`,
         name: itemData.name || t('newItem'),
         description: itemData.description || '',
         quantity: itemData.quantity ?? 1,
@@ -119,14 +120,17 @@ export const App: React.FC = () => {
         category: itemData.category || 'Stationery & Paper',
         emoji: itemData.emoji || '📦',
         minThreshold: itemData.minThreshold ?? 1,
+        attachments: itemData.attachments || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       updatedItems = [newItem, ...items];
-      showToast(t('addedItem', { name: newItem.name, drawer: newItem.drawerId }), 'success');
     }
 
-    await saveState(drawers, updatedItems);
+    if (!await saveState(drawers, updatedItems)) return false;
+    if (itemData.id) showToast(t('updatedItem', { name: itemData.name || '' }), 'success');
+    else showToast(t('addedItem', { name: itemData.name || '', drawer: itemData.drawerId || selectedDrawerId || 1 }), 'success');
+    return true;
   };
 
   // Delete Item Handler
@@ -136,7 +140,8 @@ export const App: React.FC = () => {
 
     if (window.confirm(t('confirmDeleteItem', { name: target.name }))) {
       const updatedItems = items.filter((i) => i.id !== id);
-      await saveState(drawers, updatedItems);
+      if (!await saveState(drawers, updatedItems)) return;
+      await Promise.allSettled((target.attachments || []).map(file => deleteAttachment(file.id)));
       showToast(t('deletedItem', { name: target.name }), 'info');
     }
   };
@@ -194,7 +199,8 @@ export const App: React.FC = () => {
       if (selectedDrawerId === drawerId) {
         setSelectedDrawerId(null);
       }
-      await saveState(updatedDrawers, updatedItems);
+      if (!await saveState(updatedDrawers, updatedItems)) return;
+      await Promise.allSettled(drawerItems.flatMap(item => (item.attachments || []).map(file => deleteAttachment(file.id))));
       showToast(t('deletedDrawer', { id: drawerId }), 'info');
     }
   };
@@ -219,6 +225,8 @@ export const App: React.FC = () => {
         result.path ? t('backupSaved', { path: result.path }) : t('backupExported'),
         'success'
       );
+    } else {
+      showToast(t('backupFailed'), 'warning');
     }
   };
 
@@ -228,12 +236,11 @@ export const App: React.FC = () => {
       const res = await window.deskDrawerAPI.importFile();
       if (res.success && res.data) {
         try {
-          const parsed = JSON.parse(res.data);
-          if (Array.isArray(parsed.drawers) && Array.isArray(parsed.items)) {
-            await saveState(parsed.drawers, parsed.items);
-            showToast(t('backupImported'), 'success');
-            return;
-          }
+          const imported = await StorageService.importBackup(res.data, items);
+          setDrawers(imported.drawers);
+          setItems(imported.items);
+          showToast(t('backupImported'), 'success');
+          return;
         } catch (e) {
           showToast(t('parseFailed'), 'warning');
         }
@@ -249,13 +256,10 @@ export const App: React.FC = () => {
           const reader = new FileReader();
           reader.onload = async (event) => {
             try {
-              const parsed = JSON.parse(event.target?.result as string);
-              if (Array.isArray(parsed.drawers) && Array.isArray(parsed.items)) {
-                await saveState(parsed.drawers, parsed.items);
-                showToast(t('inventoryImported'), 'success');
-              } else {
-                showToast(t('invalidFormat'), 'warning');
-              }
+              const imported = await StorageService.importBackup(event.target?.result as string, items);
+              setDrawers(imported.drawers);
+              setItems(imported.items);
+              showToast(t('inventoryImported'), 'success');
             } catch (err) {
               showToast(t('readError'), 'warning');
             }
@@ -270,10 +274,16 @@ export const App: React.FC = () => {
   // Reset to sample data
   const handleResetData = async () => {
     if (window.confirm(t('resetConfirm'))) {
-      const reset = await StorageService.resetData();
-      setDrawers(reset.drawers);
-      setItems(reset.items);
-      showToast(t('resetDone'), 'info');
+      try {
+        const removed = items.flatMap(item => item.attachments || []);
+        const reset = await StorageService.resetData();
+        setDrawers(reset.drawers);
+        setItems(reset.items);
+        await Promise.allSettled(removed.map(file => deleteAttachment(file.id)));
+        showToast(t('resetDone'), 'info');
+      } catch {
+        showToast(t('attachmentSaveFailed'), 'warning');
+      }
     }
   };
 

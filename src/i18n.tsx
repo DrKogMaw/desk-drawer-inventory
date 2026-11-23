@@ -54,6 +54,11 @@ const translations = {
     backupSaved: 'Backup saved to: {{path}}', backupExported: 'Inventory backup exported successfully!', backupImported: 'Inventory backup imported successfully!',
     parseFailed: 'Failed to parse imported JSON file', inventoryImported: 'Inventory imported successfully!', invalidFormat: 'Invalid JSON inventory format',
     readError: 'Error reading JSON file', resetConfirm: 'Reset all inventory back to initial default sample data?', resetDone: 'Reset to default inventory data',
+    attachmentsTitle: 'Attachments', attachmentsHelp: 'Photos, Word documents, and PDFs only. Add more than one file if needed.',
+    addFiles: 'Add files', noAttachments: 'No files attached yet', attachmentInvalid: '“{{name}}” is not a supported photo, Word document, or PDF.',
+    attachmentSaveFailed: 'Could not save the item or its attachments. Check available storage and try again.',
+    viewAttachment: 'View photo', downloadAttachment: 'Download document', removeAttachment: 'Remove attachment',
+    closePreview: 'Close photo preview', savingItem: 'Saving…', backupFailed: 'Could not export a complete backup. Check that attached files are available.',
   },
   es: {
     language: 'Idioma', english: 'English', spanish: 'Español', inventoryManager: 'Gestor de inventario',
@@ -91,6 +96,11 @@ const translations = {
     backupSaved: 'Copia guardada en: {{path}}', backupExported: '¡Copia del inventario exportada correctamente!', backupImported: '¡Copia del inventario importada correctamente!',
     parseFailed: 'No se pudo procesar el archivo JSON importado', inventoryImported: '¡Inventario importado correctamente!', invalidFormat: 'Formato JSON de inventario no válido',
     readError: 'Error al leer el archivo JSON', resetConfirm: '¿Restablecer todo el inventario a los datos de ejemplo iniciales?', resetDone: 'Inventario restablecido a los datos predeterminados',
+    attachmentsTitle: 'Archivos adjuntos', attachmentsHelp: 'Solo fotos, documentos Word y PDF. Puedes añadir varios archivos.',
+    addFiles: 'Añadir archivos', noAttachments: 'Todavía no hay archivos adjuntos', attachmentInvalid: '“{{name}}” no es una foto, documento Word o PDF compatible.',
+    attachmentSaveFailed: 'No se pudo guardar el artículo o sus archivos. Comprueba el espacio disponible e inténtalo de nuevo.',
+    viewAttachment: 'Ver foto', downloadAttachment: 'Descargar documento', removeAttachment: 'Eliminar archivo adjunto',
+    closePreview: 'Cerrar vista de foto', savingItem: 'Guardando…', backupFailed: 'No se pudo exportar una copia completa. Comprueba los archivos adjuntos.',
   },
 } as const;
 
